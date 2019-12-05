@@ -180,6 +180,8 @@
         self.hasCompleted = NO;
         self.hasErrored = NO;
         
+        options |= SDWebImageAllowInvalidSSLCertificates;
+        
         [self downloadImage:_source options:options];
     }
 }
