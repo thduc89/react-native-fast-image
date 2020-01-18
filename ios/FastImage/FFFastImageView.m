@@ -102,6 +102,13 @@
     }
 }
 
+- (void)setPlaceholder:(id)placeholder {
+    if (_placeholder != placeholder) {
+        _placeholder = placeholder;
+        _needsReload = YES;
+    }
+}
+
 - (void)didSetProps:(NSArray<NSString *> *)changedProps
 {
     if (_needsReload) {
@@ -189,7 +196,7 @@
 - (void)downloadImage:(FFFastImageSource *) source options:(SDWebImageOptions) options {
     __weak typeof(self) weakSelf = self; // Always use a weak reference to self in blocks
     [self sd_setImageWithURL:_source.url
-            placeholderImage:nil
+            placeholderImage:_placeholder ? [RCTConvert UIImage:_placeholder] : nil
                      options:options
                     progress:^(NSInteger receivedSize, NSInteger expectedSize, NSURL * _Nullable targetURL) {
                         if (weakSelf.onFastImageProgress) {

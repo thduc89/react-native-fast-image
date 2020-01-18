@@ -11,6 +11,7 @@ const FastImageViewNativeModule = NativeModules.FastImageView
 
 function FastImageBase({
     source,
+    placeholder,
     tintColor,
     onLoadStart,
     onProgress,
@@ -24,6 +25,7 @@ function FastImageBase({
     ...props
 }) {
     const resolvedSource = Image.resolveAssetSource(source)
+    const resolvedPlaceholder = Image.resolveAssetSource(placeholder)
 
     if (fallback) {
         return (
@@ -51,6 +53,7 @@ function FastImageBase({
                 tintColor={tintColor}
                 style={StyleSheet.absoluteFill}
                 source={resolvedSource}
+                placeholder={resolvedPlaceholder}
                 onFastImageLoadStart={onLoadStart}
                 onFastImageProgress={onProgress}
                 onFastImageLoad={onLoad}
