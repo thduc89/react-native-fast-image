@@ -5,14 +5,18 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.graphics.PorterDuff;
 import android.os.Build;
+import android.util.Log;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.model.GlideUrl;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.common.MapBuilder;
+import com.facebook.react.common.build.ReactBuildConfig;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
@@ -40,6 +44,8 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
     @Nullable
     private RequestManager requestManager = null;
 
+    private String placeholderUri;
+
     @Override
     public String getName() {
         return REACT_CLASS;
@@ -52,6 +58,15 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
         }
 
         return new FastImageViewWithUrl(reactContext);
+    }
+
+    @ReactProp(name = "placeholder")
+    public void setPlaceholder(FastImageViewWithUrl view, @Nullable ReadableMap placeholder) {
+        if (placeholder != null
+                && placeholder.hasKey("uri")
+                && !isNullOrEmpty(placeholder.getString("uri"))) {
+            placeholderUri = placeholder.getString("uri");
+        }
     }
 
     @ReactProp(name = "source")
@@ -96,7 +111,16 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
         eventEmitter.receiveEvent(viewId, REACT_ON_LOAD_START_EVENT, new WritableNativeMap());
 
         if (requestManager != null) {
-            requestManager
+            if (ReactBuildConfig.DEBUG && !isNullOrEmpty(placeholderUri)) {
+                // In debug mode, this is a localhost uri
+                requestManager
+                        .load(placeholderUri)
+                        .apply(FastImageViewConverter.getOptions(context, imageSource, source))
+                        .listener(new FastImageRequestListener(key))
+                        .into(view);
+            }
+
+            RequestBuilder builder = requestManager
                     // This will make this work for remote and local images. e.g.
                     //    - file:///
                     //    - content://
@@ -104,9 +128,18 @@ class FastImageViewManager extends SimpleViewManager<FastImageViewWithUrl> imple
                     //    - android.resource://
                     //    - data:image/png;base64
                     .load(imageSource.getSourceForLoad())
+                    .transition(DrawableTransitionOptions.withCrossFade())
                     .apply(FastImageViewConverter.getOptions(context, imageSource, source))
-                    .listener(new FastImageRequestListener(key))
-                    .into(view);
+                    .listener(new FastImageRequestListener(key));
+
+            if (!ReactBuildConfig.DEBUG && !isNullOrEmpty(placeholderUri)) {
+                // In release mode, this is an asset name
+                int resourceId = context.getResources().getIdentifier(placeholderUri,
+                        "drawable", context.getPackageName());
+                builder.placeholder(resourceId);
+            }
+
+            builder.into(view);
         }
     }
 
